@@ -1,0 +1,2 @@
+[console_scripts]
+glare = glare.cli:main

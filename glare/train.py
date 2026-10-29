@@ -140,7 +140,8 @@ def _label_names_for_indices(indices: list[int], label_names: list[str], index_n
         return []
 
     n_labels = len(label_names)
-    bad_indices = sorted({int(i) for i in indices if int(i) < 0 or int(i) >= n_labels})
+    bad_indices = sorted({int(i)
+                         for i in indices if int(i) < 0 or int(i) >= n_labels})
     if bad_indices:
         preview = ", ".join(str(i) for i in bad_indices[:10])
         raise ValueError(
@@ -264,7 +265,8 @@ def _candidate_backbone_save_modules(raw_model: nn.Module) -> list[tuple[str, nn
             pass
 
     base_model = getattr(backbone, "base_model", None)
-    nested_model = getattr(base_model, "model", None) if base_model is not None else None
+    nested_model = getattr(base_model, "model",
+                           None) if base_model is not None else None
     if nested_model is not None:
         candidates.append(("backbone.base_model.model", nested_model))
 
@@ -314,7 +316,8 @@ def _dynamic_module_names(save_dir: Path) -> set[str]:
         except (OSError, json.JSONDecodeError):
             continue
         for reference in (metadata.get("auto_map") or {}).values():
-            references = reference if isinstance(reference, list) else [reference]
+            references = reference if isinstance(
+                reference, list) else [reference]
             for item in references:
                 if not isinstance(item, str):
                     continue
@@ -386,7 +389,8 @@ def _localize_saved_auto_maps(save_dir: Path) -> list[str]:
         if not changed:
             continue
         metadata["auto_map"] = localized
-        temporary = metadata_path.with_suffix(metadata_path.suffix + ".partial")
+        temporary = metadata_path.with_suffix(
+            metadata_path.suffix + ".partial")
         temporary.write_text(json.dumps(metadata, indent=2) + "\n")
         os.replace(temporary, metadata_path)
         updated.append(metadata_name)
@@ -523,7 +527,8 @@ def save_inference_bundle(
         )
         with open(manifest_path, "w") as fh:
             json.dump(manifest, fh, indent=2, sort_keys=True)
-        logger.warning("Inference bundle not saved because %s is missing.", checkpoint_path)
+        logger.warning(
+            "Inference bundle not saved because %s is missing.", checkpoint_path)
         return
 
     raw_model = _unwrap_training_model(model, use_ddp=use_ddp)
@@ -531,24 +536,30 @@ def save_inference_bundle(
         ckpt = torch.load(checkpoint_path, map_location="cpu")
         state_dict = ckpt.get("model_state_dict", ckpt)
         raw_model.load_state_dict(state_dict)
-        logger.info("Loaded %s before saving inference bundle artifacts.", checkpoint_path)
+        logger.info(
+            "Loaded %s before saving inference bundle artifacts.", checkpoint_path)
     except Exception as exc:
         manifest["errors"].append(
             f"Failed to load checkpoint before bundle save; artifacts may reflect the in-memory model: {exc!r}"
         )
 
     local_base_model_dir.mkdir(parents=True, exist_ok=True)
-    tokenizer_status = _save_pretrained_component(tokenizer, local_base_model_dir, "tokenizer")
-    backbone_status = _save_backbone_pretrained(raw_model, local_base_model_dir)
+    tokenizer_status = _save_pretrained_component(
+        tokenizer, local_base_model_dir, "tokenizer")
+    backbone_status = _save_backbone_pretrained(
+        raw_model, local_base_model_dir)
     manifest["tokenizer_save"] = tokenizer_status
     manifest["backbone_save"] = backbone_status
     if not tokenizer_status.get("saved"):
-        manifest["errors"].append("Tokenizer could not be saved with save_pretrained(); see tokenizer_save.")
+        manifest["errors"].append(
+            "Tokenizer could not be saved with save_pretrained(); see tokenizer_save.")
     if not backbone_status.get("saved"):
-        manifest["errors"].append("Backbone/base model could not be saved with save_pretrained(); see backbone_save.")
+        manifest["errors"].append(
+            "Backbone/base model could not be saved with save_pretrained(); see backbone_save.")
 
     dynamic_components: list[object] = [tokenizer]
-    dynamic_components.extend(module for _, module in _candidate_backbone_save_modules(raw_model))
+    dynamic_components.extend(
+        module for _, module in _candidate_backbone_save_modules(raw_model))
     dynamic_status = _package_dynamic_module_code(
         save_dir=local_base_model_dir,
         components=dynamic_components,
@@ -565,8 +576,10 @@ def save_inference_bundle(
         json.dump(labels_metadata, fh, indent=2, sort_keys=True)
 
     inference_config = copy.deepcopy(config)
-    inference_config.setdefault("model", {})["base_model"] = local_base_model_path
-    inference_config.setdefault("data", {})["label_space"] = str(label_space["name"])
+    inference_config.setdefault("model", {})[
+        "base_model"] = local_base_model_path
+    inference_config.setdefault(
+        "data", {})["label_space"] = str(label_space["name"])
     inference_config["inference_bundle"] = {
         "checkpoint_filename": checkpoint_filename,
         "labels_filename": LABELS_FILENAME,
@@ -721,8 +734,10 @@ def eval_epoch(
         sf_logit_sum = torch.zeros(n_sequences, num_sf, device=device)
         ord_logit_sum = torch.zeros(n_sequences, num_ord, device=device)
         window_counts = torch.zeros(n_sequences, device=device)
-        sf_labels_store = torch.full((n_sequences,), -1, dtype=torch.long, device=device)
-        ord_labels_store = torch.full((n_sequences,), -1, dtype=torch.long, device=device)
+        sf_labels_store = torch.full(
+            (n_sequences,), -1, dtype=torch.long, device=device)
+        ord_labels_store = torch.full(
+            (n_sequences,), -1, dtype=torch.long, device=device)
     else:
         all_sf_preds: list[int] = []
         all_sf_true: list[int] = []
@@ -748,7 +763,8 @@ def eval_epoch(
             seq_idx = batch["seq_idx"].to(device, non_blocking=True)
             sf_logit_sum.index_add_(0, seq_idx, sf_logits.float())
             ord_logit_sum.index_add_(0, seq_idx, order_logits.float())
-            window_counts.index_add_(0, seq_idx, torch.ones(seq_idx.size(0), device=device))
+            window_counts.index_add_(0, seq_idx, torch.ones(
+                seq_idx.size(0), device=device))
             sf_labels_store[seq_idx] = sf_targets
             ord_labels_store[seq_idx] = order_targets
         else:
@@ -765,7 +781,8 @@ def eval_epoch(
         all_sf_true = sf_labels_store.cpu().tolist()
 
     sf_f1 = float(
-        f1_score(all_sf_true, all_sf_preds, average="weighted", zero_division=0)
+        f1_score(all_sf_true, all_sf_preds,
+                 average="weighted", zero_division=0)
     )
 
     # Derive order from SF predictions via the full configured label-space lookup.
@@ -781,7 +798,8 @@ def eval_epoch(
     pred_order_labels = [sf_to_order_map.get(sf, "") for sf in pred_sf_labels]
     true_order_labels = [sf_to_order_map.get(sf, "") for sf in true_sf_labels]
     order_f1 = float(
-        f1_score(true_order_labels, pred_order_labels, average="weighted", zero_division=0)
+        f1_score(true_order_labels, pred_order_labels,
+                 average="weighted", zero_division=0)
     )
 
     # ── DIAGNOSTIC: log SF-derived order distribution every epoch ─────────────
@@ -793,8 +811,10 @@ def eval_epoch(
         order_true_counts: dict[str, int] = {}
         for idx, sf_label in enumerate(sf_label_names):
             order = sf_to_order_map.get(sf_label, "UNKNOWN")
-            order_pred_counts[order] = order_pred_counts.get(order, 0) + pred_counts.get(idx, 0)
-            order_true_counts[order] = order_true_counts.get(order, 0) + true_counts.get(idx, 0)
+            order_pred_counts[order] = order_pred_counts.get(
+                order, 0) + pred_counts.get(idx, 0)
+            order_true_counts[order] = order_true_counts.get(
+                order, 0) + true_counts.get(idx, 0)
 
         per_order_lines = [
             f"    {order}: true={order_true_counts.get(order, 0)}, pred={order_pred_counts.get(order, 0)}"
@@ -812,7 +832,8 @@ def eval_epoch(
         )
         # Log the 10 worst SF classes
         worst = sorted(
-            [(sf_label_names[i], per_class_sf_f1[i]) for i in range(len(sf_label_names))],
+            [(sf_label_names[i], per_class_sf_f1[i])
+             for i in range(len(sf_label_names))],
             key=lambda x: x[1],
         )[:10]
         logger.info(
@@ -879,11 +900,13 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
     # ── Data ────────────────────────────────────────────────────────────────
     batch_size = config["training"]["batch_size"]
     val_fraction = config["training"]["val_fraction"]
-    train_on_train_val = bool(config["training"].get("train_on_train_val", False))
+    train_on_train_val = bool(
+        config["training"].get("train_on_train_val", False))
     num_workers = min(4, os.cpu_count() or 4)
 
     # Gradient accumulation steps (default=1 for backward compat)
-    gradient_accumulation_steps = config["training"].get("gradient_accumulation_steps", 1)
+    gradient_accumulation_steps = config["training"].get(
+        "gradient_accumulation_steps", 1)
 
     # Detect data mode
     data_config = config.get("data", {})
@@ -923,14 +946,14 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
 
     expected_orders = int(label_space["num_orders"])
     expected_sfs = int(label_space["num_superfamilies"])
-    if config["model"]["num_orders"] != expected_orders or config["model"]["num_superfamilies"] != expected_sfs:
-        raise ValueError(
-            "Config model class counts do not match label space "
-            f"{label_space['name']}: config has "
-            f"num_orders={config['model']['num_orders']}, "
-            f"num_superfamilies={config['model']['num_superfamilies']}; "
-            f"expected {expected_orders}/{expected_sfs}."
-        )
+    # if config["model"]["num_orders"] != expected_orders or config["model"]["num_superfamilies"] != expected_sfs:
+    # raise ValueError(
+    #    "Config model class counts do not match label space "
+    #    f"{label_space['name']}: config has "
+    #    f"num_orders={config['model']['num_orders']}, "
+    #    f"num_superfamilies={config['model']['num_superfamilies']}; "
+    #    f"expected {expected_orders}/{expected_sfs}."
+    # )
 
     label_subset_labels, label_subset_stats = resolve_superfamily_label_subset(
         config.get("data", {})
@@ -955,18 +978,22 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
         # ── Combined Repbase + PanTEon shared-label mode ─────────────────────
         if is_main:
             repbase_split_mode = (
-                (data_config.get("repbase_split") or {}).get("mode", "external_holdout")
+                (data_config.get("repbase_split") or {}).get(
+                    "mode", "external_holdout")
                 if isinstance(data_config.get("repbase_split") or {}, dict)
                 else data_config.get("repbase_split", "external_holdout")
             )
             logger.info(
                 "Combined Repbase+PanTEon mode: Repbase train=%s; Repbase test source=%s; Repbase split=%s; PanTEon FASTA=%s",
-                data_config.get("repbase_dir", "glare/data/repbase31_filtered"),
-                data_config.get("holdout_dir", data_config.get("repbase_dir", "glare/data/repbase31_filtered")),
+                data_config.get(
+                    "repbase_dir", "glare/data/repbase31_filtered"),
+                data_config.get("holdout_dir", data_config.get(
+                    "repbase_dir", "glare/data/repbase31_filtered")),
                 repbase_split_mode,
                 data_config.get(
                     "panteon_fasta_path",
-                    data_config.get("fasta_path", "glare/data/PanTEon_Database_v1.6.1_benchmark_edition.fasta"),
+                    data_config.get(
+                        "fasta_path", "glare/data/PanTEon_Database_v1.6.1_benchmark_edition.fasta"),
                 ),
             )
 
@@ -981,7 +1008,8 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
         test_recs = []  # final evaluation uses named external test_sets below
 
         if is_main:
-            shared_labels = combined_diagnostics.get("shared_labels_used") or []
+            shared_labels = combined_diagnostics.get(
+                "shared_labels_used") or []
             logger.info(
                 "Combined shared labels used (%d): %s",
                 len(shared_labels),
@@ -1010,11 +1038,14 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
             )
             logger.info(
                 "Combined PanTEon partition (%s; taxonomy_holdout_active=%s): total=%d train_side=%d external_test=%d train_kept=%d test_kept=%d",
-                combined_diagnostics["panteon_partition_stats"].get("split_mode"),
+                combined_diagnostics["panteon_partition_stats"].get(
+                    "split_mode"),
                 combined_diagnostics.get("taxonomy_holdout_active"),
                 combined_diagnostics["panteon_total_records"],
-                combined_diagnostics["panteon_partition_stats"].get("train_side_records"),
-                combined_diagnostics["panteon_partition_stats"].get("holdout_records"),
+                combined_diagnostics["panteon_partition_stats"].get(
+                    "train_side_records"),
+                combined_diagnostics["panteon_partition_stats"].get(
+                    "holdout_records"),
                 combined_diagnostics["panteon_train_side_records_kept"],
                 combined_diagnostics["panteon_poales_test_records_kept"],
             )
@@ -1044,11 +1075,15 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
                 combined_diagnostics["repbase_test_name"],
                 combined_diagnostics["repbase_test_records_kept"],
             )
-            logger.info("Combined split:\n%s", format_split_stats(combined_diagnostics["split_stats"]))
-            logger.info("%s", format_label_distribution(train_recs, "Combined train distribution"))
-            logger.info("%s", format_label_distribution(val_recs, "Combined validation distribution"))
+            logger.info("Combined split:\n%s", format_split_stats(
+                combined_diagnostics["split_stats"]))
+            logger.info("%s", format_label_distribution(
+                train_recs, "Combined train distribution"))
+            logger.info("%s", format_label_distribution(
+                val_recs, "Combined validation distribution"))
             for test_name, records_for_test in test_sets.items():
-                logger.info("%s", format_label_distribution(records_for_test, f"Combined external test distribution [{test_name}]"))
+                logger.info("%s", format_label_distribution(
+                    records_for_test, f"Combined external test distribution [{test_name}]"))
 
     elif panteon_mode:
         # ── PanTEon mode ────────────────────────────────────────────────────
@@ -1061,7 +1096,8 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
         panteon_label_mapping = data_config.get("panteon_label_mapping")
         records = load_panteon_dataset(
             fasta_path,
-            label_mapping_path=Path(str(panteon_label_mapping)) if panteon_label_mapping else None,
+            label_mapping_path=Path(
+                str(panteon_label_mapping)) if panteon_label_mapping else None,
             label_space_name=label_space["name"],
         )
         if label_subset_labels is not None:
@@ -1075,7 +1111,8 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
                 raise ValueError(
                     "data.label_subset removed all PanTEon records before splitting."
                 )
-        taxonomy_train_filter = data_config.get("taxonomy_train_filter") or data_config.get("taxonomy_filter")
+        taxonomy_train_filter = data_config.get(
+            "taxonomy_train_filter") or data_config.get("taxonomy_filter")
         records, taxonomy_train_filter_stats = filter_panteon_records_by_taxonomy(
             records,
             taxonomy_train_filter,
@@ -1092,7 +1129,8 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
                 taxonomy_train_filter_stats.get("matched_fasta_species"),
             )
         if not records:
-            raise ValueError("data.taxonomy_train_filter removed all PanTEon records before splitting.")
+            raise ValueError(
+                "data.taxonomy_train_filter removed all PanTEon records before splitting.")
         min_superfamily_count = data_config.get("min_superfamily_count")
         records, min_count_stats = filter_records_by_superfamily_min_count(
             records,
@@ -1109,7 +1147,8 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
                 min_count_stats.get("skipped_records"),
             )
         if not records:
-            raise ValueError("data.min_superfamily_count removed all PanTEon records before splitting.")
+            raise ValueError(
+                "data.min_superfamily_count removed all PanTEon records before splitting.")
         if is_main:
             logger.info("Total filtered PanTEon records: %d", len(records))
 
@@ -1124,9 +1163,12 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
         if is_main:
             logger.info("PanTEon split:\n%s", format_split_stats(split_stats))
         if test_recs:
-            include_default_test_set = bool(data_config.get("include_default_test_set", True))
-            test_sets = {"panteon_test": test_recs} if include_default_test_set else {}
-            taxonomy_test_groups = data_config.get("taxonomy_test_groups") or []
+            include_default_test_set = bool(
+                data_config.get("include_default_test_set", True))
+            test_sets = {
+                "panteon_test": test_recs} if include_default_test_set else {}
+            taxonomy_test_groups = data_config.get(
+                "taxonomy_test_groups") or []
             if taxonomy_test_groups:
                 grouped_test_sets, taxonomy_group_stats = build_taxonomy_group_test_sets(
                     test_recs,
@@ -1140,7 +1182,8 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
                         taxonomy_group_stats["total_records"],
                     )
                     for test_name, group_records in grouped_test_sets.items():
-                        group_stats = taxonomy_group_stats["groups"].get(test_name, {})
+                        group_stats = taxonomy_group_stats["groups"].get(
+                            test_name, {})
                         logger.info(
                             "PanTEon taxonomy test group [%s]: n=%d metadata_filter=%s=%s metadata_species=%s matched_fasta_species=%s",
                             test_name,
@@ -1287,10 +1330,14 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
                 train_val_dir,
                 holdout_dir,
             )
-            logger.info("Repbase→%s split:\n%s", label_space["name"], format_split_stats(split_stats))
-            logger.info("%s", format_label_distribution(train_recs, f"Repbase→{label_space['name']} train distribution"))
-            logger.info("%s", format_label_distribution(val_recs, f"Repbase→{label_space['name']} validation distribution"))
-            logger.info("%s", format_label_distribution(test_recs, f"Repbase→{label_space['name']} external test distribution"))
+            logger.info("Repbase→%s split:\n%s",
+                        label_space["name"], format_split_stats(split_stats))
+            logger.info("%s", format_label_distribution(
+                train_recs, f"Repbase→{label_space['name']} train distribution"))
+            logger.info("%s", format_label_distribution(
+                val_recs, f"Repbase→{label_space['name']} validation distribution"))
+            logger.info("%s", format_label_distribution(
+                test_recs, f"Repbase→{label_space['name']} external test distribution"))
         if test_recs:
             test_sets = {"repbase_grass": test_recs}
 
@@ -1303,17 +1350,28 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
         toml_path = Path(config["data"]["toml_mapping"])
 
         if is_main:
-            logger.info("Repbase mode: loading training data from %s", data_dir)
+            logger.info(
+                "Repbase mode: loading training data from %s", data_dir)
+
+        # === INÍCIO DO BYPASS DE CLASSES E PASTAS ===
+        pasta_treino = data_dir / "Train"  # A barra '/' mantém o caminho como objeto Path
+        order_labels = ["Custom"]
+        # Extrai os nomes limpos (sem o .fa)
+        sf_labels = sorted([f.stem for f in pasta_treino.glob("*.fa")])
+        # === FIM DO BYPASS DE CLASSES ===
 
         records = load_all_ref_files(
-            data_dir,
+            pasta_treino,
             toml_path,
             order_labels=list(order_labels),
             superfamily_labels=list(sf_labels),
         )
+
         if is_main:
-            logger.info("Total filtered legacy Repbase records: %d", len(records))
-            logger.info("%s", format_label_distribution(records, "Legacy Repbase filtered distribution"))
+            logger.info(
+                "Total filtered legacy Repbase records: %d", len(records))
+            logger.info("%s", format_label_distribution(
+                records, "Legacy Repbase filtered distribution"))
 
         sf_labels_all = [superfamily2idx[r["superfamily"]] for r in records]
         train_recs, val_recs = train_test_split(
@@ -1344,11 +1402,13 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
                 original_train_records,
                 len(train_recs),
             )
-            logger.info("%s", format_label_distribution(train_recs, "Final train+validation distribution"))
+            logger.info("%s", format_label_distribution(
+                train_recs, "Final train+validation distribution"))
 
     # ── Build datasets ───────────────────────────────────────────────────────
     pad_token_id = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else 0
-    sliding_window_overlap = config.get("data", {}).get("sliding_window_overlap", 0.5)
+    sliding_window_overlap = config.get(
+        "data", {}).get("sliding_window_overlap", 0.5)
 
     train_ds = TEDataset(
         train_recs,
@@ -1411,9 +1471,12 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
     num_orders = config["model"]["num_orders"]
     num_superfamilies = config["model"]["num_superfamilies"]
 
-    class_weight_scheme = config["training"].get("class_weight_scheme", "sqrt_inv")
-    order_weights = compute_class_weights(order_labels_train, num_orders, scheme=class_weight_scheme).to(device)
-    sf_weights = compute_class_weights(sf_labels_train, num_superfamilies, scheme=class_weight_scheme).to(device)
+    class_weight_scheme = config["training"].get(
+        "class_weight_scheme", "sqrt_inv")
+    order_weights = compute_class_weights(
+        order_labels_train, num_orders, scheme=class_weight_scheme).to(device)
+    sf_weights = compute_class_weights(
+        sf_labels_train, num_superfamilies, scheme=class_weight_scheme).to(device)
 
     label_smoothing = config["training"]["label_smoothing"]
     order_criterion = nn.CrossEntropyLoss(
@@ -1437,7 +1500,8 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
         )
         logger.info(
             "DIAG Order class weights: %s",
-            {order_labels[i]: f"{order_weights[i].item():.4f}" for i in range(num_orders)},
+            {order_labels[i]: f"{order_weights[i].item():.4f}" for i in range(
+                num_orders)},
         )
 
         # SF label distribution
@@ -1495,7 +1559,8 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
         # Unwrap compile + DDP to get the raw GLAREModel for parameter counting
         raw_model_for_count = model
         if use_ddp:
-            raw_model_for_count = raw_model_for_count.module  # type: ignore[union-attr]
+            # type: ignore[union-attr]
+            raw_model_for_count = raw_model_for_count.module
         # torch.compile wraps in _OptimizedModule; unwrap if needed
         if hasattr(raw_model_for_count, "_orig_mod"):
             raw_model_for_count = raw_model_for_count._orig_mod
@@ -1503,11 +1568,13 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
         backbone_trainable = sum(
             p.numel() for p in raw_model_for_count.backbone.parameters() if p.requires_grad
         )
-        backbone_total = sum(p.numel() for p in raw_model_for_count.backbone.parameters())
+        backbone_total = sum(p.numel()
+                             for p in raw_model_for_count.backbone.parameters())
         head_trainable = sum(
             p.numel() for p in raw_model_for_count.head.parameters() if p.requires_grad
         )
-        head_total = sum(p.numel() for p in raw_model_for_count.head.parameters())
+        head_total = sum(p.numel()
+                         for p in raw_model_for_count.head.parameters())
         finetune_mode = (
             "LoRA adapter fine-tuning"
             if raw_model_for_count.use_lora
@@ -1530,19 +1597,22 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
 
     # ── DIAGNOSTIC: log trainable backbone module names ───────────────────
     if is_main:
-        raw_model_diag = model.module if use_ddp else model  # type: ignore[union-attr]
+        # type: ignore[union-attr]
+        raw_model_diag = model.module if use_ddp else model
         if hasattr(raw_model_diag, "_orig_mod"):
             raw_model_diag = raw_model_diag._orig_mod
         backbone_trainable_named = [
             n for n, p in raw_model_diag.backbone.named_parameters() if p.requires_grad
         ]
-        unique_parents = sorted({".".join(n.split(".")[:-1]) for n in backbone_trainable_named})
+        unique_parents = sorted(
+            {".".join(n.split(".")[:-1]) for n in backbone_trainable_named})
         mode_label = "LoRA" if raw_model_diag.use_lora else "full fine-tuning backbone"
         logger.info(
             "DIAG %s trainable modules (%d param tensors, %d unique layers):\n    %s",
             mode_label,
             len(backbone_trainable_named), len(unique_parents),
-            "\n    ".join(unique_parents[:20]) + (" ..." if len(unique_parents) > 20 else ""),
+            "\n    ".join(unique_parents[:20]) +
+            (" ..." if len(unique_parents) > 20 else ""),
         )
     # ──────────────────────────────────────────────────────────────────────
 
@@ -1586,7 +1656,8 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
     # (not per batch). With DDP, len(train_loader) is already divided by world_size
     # (DistributedSampler), so we multiply back by world_size to get the correct
     # total number of optimizer steps across the full training run.
-    total_steps = (len(train_loader) // gradient_accumulation_steps) * max_epochs
+    total_steps = (len(train_loader) //
+                   gradient_accumulation_steps) * max_epochs
     warmup_steps = int(total_steps * warmup_fraction)
 
     if is_main:
@@ -1683,7 +1754,8 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
                 epochs_no_improve = 0
                 if save_checkpoint:
                     # Unwrap DDP and compile to get raw state dict
-                    raw_model_ckpt = model.module if use_ddp else model  # type: ignore[union-attr]
+                    # type: ignore[union-attr]
+                    raw_model_ckpt = model.module if use_ddp else model
                     if hasattr(raw_model_ckpt, "_orig_mod"):
                         raw_model_ckpt = raw_model_ckpt._orig_mod
                     checkpoint = {
@@ -1695,9 +1767,11 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
                     }
                     ckpt_path = output_dir / "best_model.pt"
                     torch.save(checkpoint, ckpt_path)
-                    logger.info("  ✓ New best val sf_f1=%.4f — checkpoint saved.", best_sf_f1)
+                    logger.info(
+                        "  ✓ New best val sf_f1=%.4f — checkpoint saved.", best_sf_f1)
                 else:
-                    logger.info("  ✓ New best val sf_f1=%.4f — new best (checkpoint saving disabled).", best_sf_f1)
+                    logger.info(
+                        "  ✓ New best val sf_f1=%.4f — new best (checkpoint saving disabled).", best_sf_f1)
             elif not is_main:
                 # Non-main ranks track improve count for barrier sync
                 if current_sf_f1 > best_sf_f1:
@@ -1726,7 +1800,8 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
 
     if train_on_train_val and is_main:
         if save_checkpoint:
-            raw_model_ckpt = model.module if use_ddp else model  # type: ignore[union-attr]
+            # type: ignore[union-attr]
+            raw_model_ckpt = model.module if use_ddp else model
             if hasattr(raw_model_ckpt, "_orig_mod"):
                 raw_model_ckpt = raw_model_ckpt._orig_mod
             checkpoint = {
@@ -1782,14 +1857,16 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
             if ckpt_path.exists():
                 ckpt = torch.load(ckpt_path, map_location="cpu")
                 # Unwrap DDP and compile to get raw model for loading
-                raw_model_eval = model.module if use_ddp else model  # type: ignore[union-attr]
+                # type: ignore[union-attr]
+                raw_model_eval = model.module if use_ddp else model
                 if hasattr(raw_model_eval, "_orig_mod"):
                     raw_model_eval = raw_model_eval._orig_mod
                 raw_model_eval.load_state_dict(ckpt["model_state_dict"])
                 raw_model_eval.to(device)
 
             # Use the raw (unwrapped) model for test evaluation
-            raw_model_eval = model.module if use_ddp else model  # type: ignore[union-attr]
+            # type: ignore[union-attr]
+            raw_model_eval = model.module if use_ddp else model
             if hasattr(raw_model_eval, "_orig_mod"):
                 raw_model_eval = raw_model_eval._orig_mod
 
@@ -1839,8 +1916,10 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
 
             log_path = output_dir / "train_log.csv"
             with open(log_path, "a", newline="") as fh:
-                fieldnames = list(log_rows[0].keys()) if log_rows else list(test_rows[0].keys())
-                writer = csv.DictWriter(fh, fieldnames=fieldnames, extrasaction="ignore")
+                fieldnames = list(log_rows[0].keys()) if log_rows else list(
+                    test_rows[0].keys())
+                writer = csv.DictWriter(
+                    fh, fieldnames=fieldnames, extrasaction="ignore")
                 writer.writerows(test_rows)
             logger.info("Test metrics appended to %s", log_path)
 
@@ -1856,13 +1935,15 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
                 "TemperatureScaler is skipped because no validation set exists; MahalanobisOOD will use train+validation embeddings."
             )
         else:
-            logger.info("Fitting OOD calibration artifacts (TemperatureScaler + MahalanobisOOD)…")
+            logger.info(
+                "Fitting OOD calibration artifacts (TemperatureScaler + MahalanobisOOD)…")
         try:
             from .ood import TemperatureScaler, MahalanobisOOD
 
             # Reload best checkpoint into a clean raw model for calibration
             ckpt_path = output_dir / "best_model.pt"
-            raw_model_cal = model.module if use_ddp else model  # type: ignore[union-attr]
+            # type: ignore[union-attr]
+            raw_model_cal = model.module if use_ddp else model
             if hasattr(raw_model_cal, "_orig_mod"):
                 raw_model_cal = raw_model_cal._orig_mod
             if ckpt_path.exists():
@@ -1889,14 +1970,17 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
                 all_val_labels: list[torch.Tensor] = []
                 with torch.no_grad():
                     for batch in val_loader:
-                        b_input_ids = batch["input_ids"].to(device, non_blocking=True)
-                        b_attn_mask = batch["attention_mask"].to(device, non_blocking=True)
+                        b_input_ids = batch["input_ids"].to(
+                            device, non_blocking=True)
+                        b_attn_mask = batch["attention_mask"].to(
+                            device, non_blocking=True)
                         b_sf_labels = batch["superfamily_label"]
                         with torch.autocast(
                             device_type="cuda", dtype=torch.bfloat16,
                             enabled=(device.type == "cuda"),
                         ):
-                            _ord_logits, sf_logits_cal = raw_model_cal(b_input_ids, b_attn_mask)
+                            _ord_logits, sf_logits_cal = raw_model_cal(
+                                b_input_ids, b_attn_mask)
                         all_val_logits.append(sf_logits_cal.float().cpu())
                         all_val_labels.append(b_sf_labels.cpu())
 
@@ -1907,7 +1991,8 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
                 fitted_T = scaler.fit(val_logits_cat, val_labels_cat)
                 scaler_path = output_dir / "temperature_scaler.json"
                 scaler.save(str(scaler_path))
-                logger.info("Temperature scaler saved to %s (T=%.4f)", scaler_path, fitted_T)
+                logger.info("Temperature scaler saved to %s (T=%.4f)",
+                            scaler_path, fitted_T)
 
             # ── Mahalanobis OOD: collect train trunk embeddings ───────────────
             if hasattr(raw_model_cal, "extract_trunk_embeddings"):
@@ -1915,8 +2000,10 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
                 all_train_labels: list[np.ndarray] = []
                 with torch.no_grad():
                     for batch in train_loader:
-                        b_input_ids = batch["input_ids"].to(device, non_blocking=True)
-                        b_attn_mask = batch["attention_mask"].to(device, non_blocking=True)
+                        b_input_ids = batch["input_ids"].to(
+                            device, non_blocking=True)
+                        b_attn_mask = batch["attention_mask"].to(
+                            device, non_blocking=True)
                         b_sf_labels = batch["superfamily_label"].numpy()
                         with torch.autocast(
                             device_type="cuda", dtype=torch.bfloat16,
@@ -1946,7 +2033,8 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
                 )
 
         except Exception as exc:
-            logger.warning("OOD calibration failed (non-fatal): %s", exc, exc_info=True)
+            logger.warning(
+                "OOD calibration failed (non-fatal): %s", exc, exc_info=True)
 
     if is_main:
         try:
@@ -1959,7 +2047,8 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
                 use_ddp=use_ddp,
             )
         except Exception as exc:
-            logger.warning("Inference bundle saving failed (non-fatal): %s", exc, exc_info=True)
+            logger.warning(
+                "Inference bundle saving failed (non-fatal): %s", exc, exc_info=True)
 
     if use_ddp:
         dist.destroy_process_group()

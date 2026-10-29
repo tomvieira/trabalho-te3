@@ -1,0 +1,16 @@
+torch<2.6,>=2.4
+transformers<4.45,>=4.40
+tokenizers<0.20,>=0.19
+peft<0.14,>=0.10
+datasets<3,>=2.18
+accelerate<1,>=0.29
+huggingface_hub<1,>=0.23
+scikit-learn<2,>=1.4
+pandas<3,>=2
+numpy<3,>=1.26
+click<9,>=8.1
+pyyaml<7,>=6
+tqdm<5,>=4.66
+biopython<2,>=1.83
+matplotlib<4,>=3.8
+scipy<2,>=1.11

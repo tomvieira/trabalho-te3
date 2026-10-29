@@ -1,0 +1,27 @@
+model:
+  base_model: "InstaDeepAI/NTv3_650M_pre"
+  use_lora: true
+  lora_r: 8
+  lora_alpha: 16
+  lora_dropout: 0.1
+  lora_target_modules: "all-linear"
+  hidden_dim: 512
+  num_orders: 1
+  num_superfamilies: 10
+  max_length: 4096
+
+training:
+  batch_size: 2
+  epochs: 10
+  learning_rate: 3e-4
+  rc_augment: true
+  seed: 42
+  val_fraction: 0.2
+
+data:
+  train_dir: "./data/Dataset3_nova/Train"
+  test_dir: "./data/Dataset3_nova/Test"
+  label_space: "custom"
+  repbase_dir: "./data/Dataset3_nova"
+  panteon_dir: "./data/Dataset3_nova"
+  toml_mapping: "data/meu_mapeamento.toml" # <-- LINHA ADICIONADA AQUI
