@@ -7,10 +7,23 @@ Supports two workflows:
      45-superfamily / 7-order vocabulary.  Kept for backward compatibility.
 """
 
-try:
-    import tomllib
-except ImportError:
-    import tomli as tomllib  # type: ignore[no-redef]
+
+from .constants import (
+    ORDER2IDX,
+    IDX2SUPERFAMILY,
+    SUPERFAMILY2IDX,
+    ORDER_LABELS,
+    SUPERFAMILY_LABELS,
+    LEGACY_REPBASE_ORDER_LABELS,
+    LEGACY_REPBASE_ORDER2IDX,
+    LEGACY_REPBASE_SUPERFAMILY_LABELS,
+    LEGACY_REPBASE_SUPERFAMILY2IDX,
+    get_label_space,
+    normalize_sf,
+    SF_TO_ORDER,
+)
+import tomllib
+
 
 import csv
 import logging
@@ -231,27 +244,13 @@ def get_tokenizer(base_model_name: str):
             "transformers is required to load HuggingFace tokenizers; install it "
             "or run inside the GLARE evaluation environment."
         )
-    tokenizer = AutoTokenizer.from_pretrained(base_model_name, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(
+        base_model_name, trust_remote_code=True)
     if is_caduceus_model_name(base_model_name):
         return CaduceusTokenizer(tokenizer)
     if is_dnabert2_model_name(base_model_name):
         return DNABERT2Tokenizer(tokenizer)
     return tokenizer
-
-from .constants import (
-    ORDER2IDX,
-    IDX2SUPERFAMILY,
-    SUPERFAMILY2IDX,
-    ORDER_LABELS,
-    SUPERFAMILY_LABELS,
-    LEGACY_REPBASE_ORDER_LABELS,
-    LEGACY_REPBASE_ORDER2IDX,
-    LEGACY_REPBASE_SUPERFAMILY_LABELS,
-    LEGACY_REPBASE_SUPERFAMILY2IDX,
-    get_label_space,
-    normalize_sf,
-    SF_TO_ORDER,
-)
 
 
 # RepeatMasker-style labels that are intentionally not collapsed into the
@@ -462,7 +461,8 @@ def filter_records_by_superfamily_min_count(
     threshold = int(min_count)
     counts = Counter(str(rec.get("superfamily", "")) for rec in records)
     allowed = {sf for sf, count in counts.items() if count >= threshold}
-    kept = [rec for rec in records if str(rec.get("superfamily", "")) in allowed]
+    kept = [rec for rec in records if str(
+        rec.get("superfamily", "")) in allowed]
     kept_counts = Counter(str(rec.get("superfamily", "")) for rec in kept)
     skipped_counts = Counter(
         str(rec.get("superfamily", ""))
@@ -534,7 +534,8 @@ def _taxonomy_holdout_label(config: Optional[dict[str, Any]]) -> str:
     """Return a compact label for a taxonomy holdout configuration."""
     if not config:
         return "taxonomy_holdout"
-    raw_name = config.get("name") or config.get("test_name") or config.get("filter_value")
+    raw_name = config.get("name") or config.get(
+        "test_name") or config.get("filter_value")
     if raw_name is None and "filter_values" in config:
         raw_values = config.get("filter_values")
         if isinstance(raw_values, (list, tuple, set)):
@@ -554,9 +555,12 @@ def _select_panteon_records_by_taxonomy(
     context: str,
 ) -> tuple[list[dict], dict[str, Any]]:
     """Select PanTEon records whose FASTA species match a metadata taxonomy filter."""
-    selected_species, metadata_stats = load_taxonomy_holdout_species(taxonomy_config)
-    species_match = str(taxonomy_config.get("species_match", "normalized_exact"))
-    fasta_species_mode = str(taxonomy_config.get("fasta_species_mode", "after_at"))
+    selected_species, metadata_stats = load_taxonomy_holdout_species(
+        taxonomy_config)
+    species_match = str(taxonomy_config.get(
+        "species_match", "normalized_exact"))
+    fasta_species_mode = str(taxonomy_config.get(
+        "fasta_species_mode", "after_at"))
     fail_on_no_matches = bool(taxonomy_config.get("fail_on_no_matches", True))
 
     if not selected_species:
@@ -663,7 +667,8 @@ def build_taxonomy_group_test_sets(
             cfg.setdefault("name", str(group_name))
             group_configs.append(cfg)
     else:
-        group_configs = [dict(group_cfg or {}) for group_cfg in taxonomy_groups]
+        group_configs = [dict(group_cfg or {})
+                         for group_cfg in taxonomy_groups]
 
     grouped_records: dict[str, list[dict]] = {}
     group_stats: dict[str, Any] = {
@@ -775,7 +780,8 @@ def compute_train_intersection_label_subset(
         "fasta_path",
         "glare/data/PanTEon_Database_v1.6.1_benchmark_edition.fasta",
     )
-    taxonomy_holdout = _label_subset_taxonomy_holdout(label_subset_config, data_config)
+    taxonomy_holdout = _label_subset_taxonomy_holdout(
+        label_subset_config, data_config)
 
     label_space_name = _label_space_name(data_config)
     panteon_label_mapping = (
@@ -790,7 +796,8 @@ def compute_train_intersection_label_subset(
         )
         panteon_records = load_panteon_dataset(
             panteon_fasta_path,
-            label_mapping_path=Path(str(panteon_label_mapping)) if panteon_label_mapping else None,
+            label_mapping_path=Path(
+                str(panteon_label_mapping)) if panteon_label_mapping else None,
             label_space_name=label_space_name,
         )
     else:
@@ -806,7 +813,8 @@ def compute_train_intersection_label_subset(
         )
     )
 
-    repbase_counts = Counter(str(r.get("superfamily", "")) for r in repbase_records)
+    repbase_counts = Counter(str(r.get("superfamily", ""))
+                             for r in repbase_records)
     panteon_counts = Counter(
         str(r.get("superfamily", "")) for r in panteon_train_side_records
     )
@@ -843,10 +851,12 @@ def compute_train_intersection_label_subset(
         "repbase_only_labels_excluded": _ordered_superfamily_labels(repbase_labels - panteon_labels),
         "panteon_only_labels_excluded": _ordered_superfamily_labels(panteon_labels - repbase_labels),
         "vocab_labels_absent_from_repbase_train": _ordered_superfamily_labels(
-            set(get_label_space(label_space_name)["superfamily_labels"]) - repbase_labels
+            set(get_label_space(label_space_name)[
+                "superfamily_labels"]) - repbase_labels
         ),
         "vocab_labels_absent_from_panteon_train_side": _ordered_superfamily_labels(
-            set(get_label_space(label_space_name)["superfamily_labels"]) - panteon_labels
+            set(get_label_space(label_space_name)[
+                "superfamily_labels"]) - panteon_labels
         ),
     }
     return intersection, stats
@@ -870,10 +880,13 @@ def resolve_superfamily_label_subset(
     if mode == "explicit":
         raw_labels = label_subset_config.get("labels") or []
         if not isinstance(raw_labels, (list, tuple, set)):
-            raise ValueError("data.label_subset.labels must be a list in explicit mode.")
-        labels = [str(label).strip() for label in raw_labels if str(label).strip()]
+            raise ValueError(
+                "data.label_subset.labels must be a list in explicit mode.")
+        labels = [str(label).strip()
+                  for label in raw_labels if str(label).strip()]
         if not labels:
-            raise ValueError("data.label_subset explicit mode requires at least one label.")
+            raise ValueError(
+                "data.label_subset explicit mode requires at least one label.")
         label_space = get_label_space(_label_space_name(data_config))
         unknown = sorted(set(labels) - set(label_space["superfamily_labels"]))
         if unknown:
@@ -911,7 +924,8 @@ def normalize_species_name(species: str) -> str:
     spaces, collapses repeated whitespace, and case-folds for matching.
     """
     cleaned = species.strip().lstrip("@").replace("_", " ")
-    cleaned = "".join(ch if ch.isalnum() or ch.isspace() else " " for ch in cleaned)
+    cleaned = "".join(ch if ch.isalnum() or ch.isspace()
+                      else " " for ch in cleaned)
     return " ".join(cleaned.split()).casefold()
 
 
@@ -947,6 +961,7 @@ def extract_panteon_header_species(
         f"Unsupported FASTA species extraction mode {mode!r}; expected one of "
         "'after_at', 'after_first_space', or 'full_header'."
     )
+
 
 def parse_panteon_fasta(fasta_path: Path) -> list[dict]:
     """Parse a PanTEon FASTA file into a list of record dicts.
@@ -1004,7 +1019,8 @@ def parse_panteon_fasta(fasta_path: Path) -> list[dict]:
                 if "#" in id_token:
                     class_path = id_token.split("#")[1]
                     class_parts = class_path.split("/")
-                    raw_order = class_parts[-2] if len(class_parts) >= 2 else ""
+                    raw_order = class_parts[-2] if len(
+                        class_parts) >= 2 else ""
                     raw_sf = class_parts[-1]
                 else:
                     raw_order = ""
@@ -1074,7 +1090,8 @@ def load_panteon_dataset(
             mapped["native_superfamily"] = rec.get("superfamily", "")
             mapped["repeatmasker_label"] = mapped_label
             mapped["superfamily"] = mapped_label
-            mapped["order"] = str(sf_to_order_map.get(mapped_label, _superfamily_order(mapped_label)))
+            mapped["order"] = str(sf_to_order_map.get(
+                mapped_label, _superfamily_order(mapped_label)))
             filtered.append(mapped)
         return filtered
 
@@ -1319,9 +1336,11 @@ def split_stratified_train_val_test_records(
     if test_fraction is None:
         test_fraction = val_fraction
     if not 0 < test_fraction < 1:
-        raise ValueError(f"test_fraction must be in (0, 1), got {test_fraction}.")
+        raise ValueError(
+            f"test_fraction must be in (0, 1), got {test_fraction}.")
     if not 0 <= val_fraction < 1:
-        raise ValueError(f"val_fraction must be in [0, 1), got {val_fraction}.")
+        raise ValueError(
+            f"val_fraction must be in [0, 1), got {val_fraction}.")
     if val_fraction + test_fraction >= 1:
         raise ValueError(
             "val_fraction + test_fraction must be < 1 for a non-empty train fold; "
@@ -1427,20 +1446,25 @@ def build_combined_repbase_panteon_records(
     All four pools are filtered by ``label_subset_labels`` only when provided.
     Without a subset, the full configured label vocabulary is retained.
     """
-    repbase_train_dir = Path(data_config.get("repbase_dir", "glare/data/repbase31_filtered"))
-    repbase_holdout_dir = Path(data_config.get("holdout_dir", "glare/data/repbase31_holdout"))
-    toml_path = Path(data_config.get("toml_mapping", "glare/data/repbase-to-repeatmasker.toml"))
+    repbase_train_dir = Path(data_config.get(
+        "repbase_dir", "glare/data/repbase31_filtered"))
+    repbase_holdout_dir = Path(data_config.get(
+        "holdout_dir", "glare/data/repbase31_holdout"))
+    toml_path = Path(data_config.get(
+        "toml_mapping", "glare/data/repbase-to-repeatmasker.toml"))
     label_space_name = _label_space_name(data_config)
     panteon_label_mapping = data_config.get("panteon_label_mapping")
     panteon_fasta_path = Path(
         data_config.get(
             "panteon_fasta_path",
-            data_config.get("fasta_path", "glare/data/PanTEon_Database_v1.6.1_benchmark_edition.fasta"),
+            data_config.get(
+                "fasta_path", "glare/data/PanTEon_Database_v1.6.1_benchmark_edition.fasta"),
         )
     )
     taxonomy_holdout = data_config.get("taxonomy_holdout")
     taxonomy_holdout_active = taxonomy_holdout_enabled(taxonomy_holdout)
-    repbase_random_split_active = _repbase_stratified_random_split_enabled(data_config)
+    repbase_random_split_active = _repbase_stratified_random_split_enabled(
+        data_config)
     repbase_split_config = data_config.get("repbase_split") or {}
     if isinstance(repbase_split_config, str):
         repbase_split_config = {"mode": repbase_split_config}
@@ -1465,7 +1489,8 @@ def build_combined_repbase_panteon_records(
         )
         panteon_records = load_panteon_dataset(
             panteon_fasta_path,
-            label_mapping_path=Path(str(panteon_label_mapping)) if panteon_label_mapping else None,
+            label_mapping_path=Path(
+                str(panteon_label_mapping)) if panteon_label_mapping else None,
             label_space_name=label_space_name,
         )
     else:
@@ -1572,21 +1597,29 @@ def build_combined_repbase_panteon_records(
         )
 
     if not repbase_train_records:
-        raise ValueError(f"No Repbase train records remain from {repbase_train_dir}.")
+        raise ValueError(
+            f"No Repbase train records remain from {repbase_train_dir}.")
     if not panteon_train_side_records:
-        raise ValueError(f"No PanTEon train-side records remain from {panteon_fasta_path}.")
+        raise ValueError(
+            f"No PanTEon train-side records remain from {panteon_fasta_path}.")
     if not panteon_test_records:
-        raise ValueError("No PanTEon external test records remain after filtering/splitting.")
+        raise ValueError(
+            "No PanTEon external test records remain after filtering/splitting.")
     if not repbase_test_records:
         repbase_test_source = repbase_train_dir if repbase_random_split_active else repbase_holdout_dir
-        raise ValueError(f"No Repbase external test records remain from {repbase_test_source}.")
+        raise ValueError(
+            f"No Repbase external test records remain from {repbase_test_source}.")
 
     repbase_train_source = "repbase_random_train_val" if repbase_random_split_active else "repbase_train"
-    repbase_train_records = _with_source(repbase_train_records, repbase_train_source)
+    repbase_train_records = _with_source(
+        repbase_train_records, repbase_train_source)
     panteon_train_source = "panteon_non_poales_train" if taxonomy_holdout_active else "panteon_random_train_val"
-    panteon_train_side_records = _with_source(panteon_train_side_records, panteon_train_source)
-    panteon_test_records = _with_source(panteon_test_records, f"{panteon_test_name}_test")
-    repbase_test_records = _with_source(repbase_test_records, f"{repbase_test_name}_test")
+    panteon_train_side_records = _with_source(
+        panteon_train_side_records, panteon_train_source)
+    panteon_test_records = _with_source(
+        panteon_test_records, f"{panteon_test_name}_test")
+    repbase_test_records = _with_source(
+        repbase_test_records, f"{repbase_test_name}_test")
 
     combined_records = repbase_train_records + panteon_train_side_records
     train_recs, val_recs, split_stats = split_train_val_records(
@@ -1693,8 +1726,10 @@ def _split_panteon_records_with_rare_classes_in_train(
     rare_superfamilies = {
         sf for sf, count in counts.items() if count < min_count_for_val_and_test
     }
-    rare_train_recs = [r for r in records if r["superfamily"] in rare_superfamilies]
-    stratified_recs = [r for r in records if r["superfamily"] not in rare_superfamilies]
+    rare_train_recs = [
+        r for r in records if r["superfamily"] in rare_superfamilies]
+    stratified_recs = [
+        r for r in records if r["superfamily"] not in rare_superfamilies]
 
     if not stratified_recs:
         raise ValueError(
@@ -1786,10 +1821,13 @@ def split_panteon_records(
         return train_recs, val_recs, test_recs, stats
 
     assert taxonomy_holdout is not None
-    holdout_species, metadata_stats = load_taxonomy_holdout_species(taxonomy_holdout)
+    holdout_species, metadata_stats = load_taxonomy_holdout_species(
+        taxonomy_holdout)
     fail_on_no_matches = bool(taxonomy_holdout.get("fail_on_no_matches", True))
-    species_match = str(taxonomy_holdout.get("species_match", "normalized_exact"))
-    fasta_species_mode = str(taxonomy_holdout.get("fasta_species_mode", "after_at"))
+    species_match = str(taxonomy_holdout.get(
+        "species_match", "normalized_exact"))
+    fasta_species_mode = str(taxonomy_holdout.get(
+        "fasta_species_mode", "after_at"))
 
     if not holdout_species:
         msg = (
@@ -1876,7 +1914,8 @@ def format_split_stats(stats: dict[str, Any]) -> str:
         absent = stats.get("test_superfamilies_absent_from_train") or []
         if absent:
             lines.append(
-                "WARNING test superfamilies absent from train: " + ", ".join(absent)
+                "WARNING test superfamilies absent from train: " +
+                ", ".join(absent)
             )
     return "\n".join(lines)
 
@@ -1939,72 +1978,28 @@ def apply_toml_filter(
     order_labels: Optional[list[str]] = None,
     superfamily_labels: Optional[list[str]] = None,
 ) -> tuple[list[dict], int]:
-    """Apply two-stage TOML mapping filter (legacy Repbase workflow).
 
-    Stage 1: translate ``record['category']`` via the mapping dict.
-    Stage 2: drop if the translated value is not in ``set(mapping.values())``.
-
-    Adds ``'order'`` and ``'superfamily'`` keys:
-    - ``order``: part before ``'/'`` in translated label (or full label if no ``'/'``)
-    - ``superfamily``: full translated label if it contains ``'/'``, else ``None``
-
-    Only records where BOTH ``order`` is in :data:`ORDER_LABELS` AND
-    ``superfamily`` is in :data:`SUPERFAMILY_LABELS` are kept.
-
-    Returns ``(filtered_records, n_dropped)``.
-    """
-    with open(toml_path, "rb") as fh:
-        mapping: dict[str, str] = tomllib.load(fh)
-
-    valid_values: set[str] = set(mapping.values())
-    order_set: set[str] = set(order_labels or LEGACY_REPBASE_ORDER_LABELS)
-    sf_set: set[str] = set(superfamily_labels or LEGACY_REPBASE_SUPERFAMILY_LABELS)
-
-    filtered: list[dict] = []
-    n_dropped = 0
+    # === INÍCIO DO BYPASS DEFINITIVO ===
+    filtered = []
 
     for rec in records:
-        raw_cat = rec.get("category", "")
-
-        # Stage 1: translate
-        if raw_cat in mapping:
-            translated = mapping[raw_cat]
-        else:
-            n_dropped += 1
-            continue
-
-        # Stage 2: drop if translated value not in mapping values
-        if translated not in valid_values:
-            n_dropped += 1
-            continue
-
-        # Parse order / superfamily
-        if "/" in translated:
-            order = translated.split("/", 1)[0]
-            superfamily = translated
-        else:
-            order = translated
-            superfamily = None  # type: ignore[assignment]
-
-        # Special case: PLE sequences are mapped to the order-level label "PLE"
-        # by the TOML (no superfamily distinction). Assign them all to "PLE/Penelope".
-        if order == "PLE" and superfamily is None:
-            superfamily = "PLE/Penelope"
-
-        # Drop if order or superfamily is not in our fixed label sets
-        if order not in order_set:
-            n_dropped += 1
-            continue
-        if superfamily is None or superfamily not in sf_set:
-            n_dropped += 1
-            continue
-
         new_rec = dict(rec)
-        new_rec["order"] = order
-        new_rec["superfamily"] = superfamily
+
+        sf = ""
+        # Percorre todo o dicionário da sequência (id, description, etc)
+        for val in rec.values():
+            if isinstance(val, str) and "#Custom/" in val:
+                # Extrai a classe que vem logo depois de #Custom/
+                sf = val.split("#Custom/")[1].split()[0]
+                break
+
+        new_rec["order"] = "Custom"
+        new_rec["superfamily"] = sf
         filtered.append(new_rec)
 
-    return filtered, n_dropped
+    # Retorna todas as sequências intactas e 0 (zero) descartes
+    return filtered, 0
+    # === FIM DO BYPASS DEFINITIVO ===
 
 
 def load_all_ref_files(
@@ -2018,7 +2013,14 @@ def load_all_ref_files(
     Returns a flat list of filtered records (each has ``order``, ``superfamily``).
     """
     all_records: list[dict] = []
-    ref_files = sorted(data_dir.glob("*.ref"))
+    # ref_files = sorted(data_dir.glob("*.ref"))
+
+    # MUDANÇA: Lê qualquer extensão de FASTA e imprime no terminal
+    ref_files = [f for f in data_dir.iterdir() if f.name.endswith(
+        ('.fa', '.fasta', '.fna', '.ref'))]
+    print(
+        f"\n[DEBUG GLARE] Encontrados {len(ref_files)} ficheiros na pasta {data_dir}\n")
+
     for ref_path in ref_files:
         recs = parse_ref_file(ref_path)
         filtered, dropped = apply_toml_filter(
@@ -2174,7 +2176,8 @@ def map_records_to_configured_label_space(
             skipped_target_counts[target_label] += 1
             continue
 
-        order = str(sf_to_order_map.get(target_label, _superfamily_order(target_label)))
+        order = str(sf_to_order_map.get(
+            target_label, _superfamily_order(target_label)))
         target_counts[target_label] += 1
         order_counts[order] += 1
 
@@ -2283,7 +2286,8 @@ def load_external_repbase_fasta_for_panteon(
     with open(toml_path, "rb") as fh:
         repbase_to_rm: dict[str, str] = tomllib.load(fh)
 
-    mapped_records, diagnostics = map_repbase_records_to_panteon(raw_records, repbase_to_rm)
+    mapped_records, diagnostics = map_repbase_records_to_panteon(
+        raw_records, repbase_to_rm)
     diagnostics["fasta_path"] = str(fasta_path)
     diagnostics["toml_path"] = str(toml_path)
     diagnostics["ref_files"] = 1
@@ -2387,7 +2391,7 @@ class TEDataset(Dataset):
         # tokenizer wrappers.
         if self.augment and len(sequence) > self.max_length:
             start = random.randint(0, len(sequence) - self.max_length)
-            sequence = sequence[start : start + self.max_length]
+            sequence = sequence[start: start + self.max_length]
 
         # Reverse-complement augmentation (stochastic, training only).
         if self.rc_augment and random.random() < 0.5:
@@ -2413,8 +2417,10 @@ class TEDataset(Dataset):
         else:
             attention_mask = (input_ids != self.pad_token_id).long()  # (L,)
 
-        order_label = torch.tensor(self.order2idx[rec["order"]], dtype=torch.long)
-        sf_label = torch.tensor(self.superfamily2idx[rec["superfamily"]], dtype=torch.long)
+        order_label = torch.tensor(
+            self.order2idx[rec["order"]], dtype=torch.long)
+        sf_label = torch.tensor(
+            self.superfamily2idx[rec["superfamily"]], dtype=torch.long)
 
         return {
             "input_ids": input_ids,
@@ -2529,6 +2535,7 @@ class SlidingWindowInferenceDataset(torch.utils.data.Dataset):
             "attention_mask": attention_mask,
             "seq_idx": torch.tensor(window["seq_idx"], dtype=torch.long),
         }
+
 
 class SlidingWindowDataset(torch.utils.data.Dataset):
     """Dataset that expands each sequence into overlapping windows for full-sequence inference.
@@ -2672,7 +2679,8 @@ def make_dataloaders(
     )
     logger.info("PanTEon split:\n%s", format_split_stats(split_stats))
 
-    train_ds = TEDataset(train_recs, tokenizer, max_length=max_length, augment=True)
+    train_ds = TEDataset(train_recs, tokenizer,
+                         max_length=max_length, augment=True)
     val_ds = TEDataset(val_recs, tokenizer, max_length=max_length)
 
     train_loader = DataLoader(
