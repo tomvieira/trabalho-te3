@@ -1,0 +1,41 @@
+model:
+  base_model: "zhihan1996/DNABERT-2-117M"
+  # GLARE treats this as a nucleotide context length. DNABERT-2 DNA is cropped
+  # to this many nucleotides first, then tokenized with DNABERT-2 BPE.
+  max_length: 512
+  use_lora: false  # set true only after verifying target modules for DNABERT-2
+  lora_r: 32
+  lora_alpha: 64
+  lora_dropout: 0.1
+  lora_target_modules: ["Wqkv"]
+  hidden_dim: 512
+  num_orders: 8
+  num_superfamilies: 30
+  pooling: "mean"
+
+training:
+  batch_size: 16
+  max_epochs: 10
+  early_stopping_patience: 8
+  lambda_superfamily: 1.0
+  lambda_order: 0
+  lora_lr: 5.0e-5
+  head_lr: 3.0e-4
+  weight_decay: 0.01
+  warmup_fraction: 0.05
+  val_fraction: 0.1
+  seed: 7
+  label_smoothing: 0.05
+  gradient_accumulation_steps: 4
+  use_compile: false
+
+evaluation:
+  thresholds: [0.0]
+  use_hierarchical_confidence: false
+
+data:
+  label_space: "panteon30"
+  fasta_path: "glare/data/PanTEon_Database_v1.6.1_benchmark_edition.fasta"
+  test_fraction: 0.1
+  sliding_window_overlap: 0.5
+

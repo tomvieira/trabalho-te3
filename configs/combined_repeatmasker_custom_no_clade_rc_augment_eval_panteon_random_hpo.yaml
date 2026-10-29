@@ -1,0 +1,46 @@
+model:
+  base_model: "InstaDeepAI/NTv3_650M_pre"
+  max_length: 4096
+  use_lora: false
+  lora_r: 32
+  lora_alpha: 64
+  lora_dropout: 0.1
+  lora_target_modules: ["linear", "mha_output"]
+  hidden_dim: 512
+  head_dropout: 0.22320323256729352
+  num_orders: 11
+  num_superfamilies: 32
+  pooling: "mean"
+
+training:
+  batch_size: 8
+  max_epochs: 10
+  early_stopping_patience: 8
+  lambda_superfamily: 1.0
+  lambda_order: 0
+  lora_lr: 2.53032090218936e-05
+  head_lr: 0.00028944361832243895
+  weight_decay: 0.059703505248527425
+  warmup_fraction: 0.05
+  val_fraction: 0.1
+  seed: 7
+  label_smoothing: 0.04654581174590394
+  class_weight_scheme: "sqrt_inv"
+  gradient_accumulation_steps: 4
+  use_compile: true
+
+evaluation:
+  thresholds: [0.0]
+  output_dir: "glare_combined_repeatmasker_custom_no_clade_rc_augment_on_panteon_random_results"
+  use_hierarchical_confidence: false
+
+data:
+  label_space: "repeatmasker_custom"
+  fasta_path: "glare/data/PanTEon_Database_v1.6.1_benchmark_edition.fasta"
+  panteon_label_mapping: "glare/data/panteon-to-repeatmasker-custom.toml"
+  toml_mapping: "glare/data/repbase-to-repeatmasker-custom.toml"
+  test_fraction: 0.1
+  sliding_window_overlap: 0.5
+  taxonomy_holdout:
+    enabled: false
+  rc_eval: false

@@ -1,0 +1,83 @@
+model:
+  base_model: "InstaDeepAI/NTv3_650M_pre"
+  max_length: 512
+  use_lora: false
+  lora_r: 32
+  lora_alpha: 64
+  lora_dropout: 0.1
+  lora_target_modules: ["linear", "mha_output"]
+  hidden_dim: 512
+  num_orders: 11
+  num_superfamilies: 32
+  pooling: "mean"
+
+training:
+  batch_size: 16
+  max_epochs: 10
+  early_stopping_patience: 8
+  lambda_superfamily: 1.0
+  lambda_order: 0
+  lora_lr: 5.0e-5
+  head_lr: 3.0e-4
+  weight_decay: 0.01
+  warmup_fraction: 0.05
+  val_fraction: 0.1
+  seed: 7
+  label_smoothing: 0.05
+  gradient_accumulation_steps: 4
+  use_compile: true
+
+evaluation:
+  thresholds: [0.0]
+  output_dir: "glare_combined_repeatmasker_custom_on_panteon_poales_shared_subset_results"
+  use_hierarchical_confidence: false
+
+data:
+  label_space: "repeatmasker_custom"
+  fasta_path: "glare/data/PanTEon_Database_v1.6.1_benchmark_edition.fasta"
+  panteon_label_mapping: "glare/data/panteon-to-repeatmasker-custom.toml"
+  toml_mapping: "glare/data/repbase-to-repeatmasker-custom.toml"
+  test_fraction: 0.1
+  sliding_window_overlap: 0.5
+  taxonomy_holdout:
+    enabled: true
+    metadata_csv: "glare/data/PanTEon_Database_metadata_v1.6.1.csv"
+    filter_column: "Order"
+    filter_value: "Poales"
+    species_column: "Species"
+    filter_match: "exact"
+    fasta_species_mode: "after_at"
+    species_match: "normalized_exact"
+    fail_on_no_matches: true
+  # Previous shared-label/intersection experiment set:
+  # the 25 PanTEon30 labels from repbase30_shared_labels / panteon_poales_holdout_shared_labels,
+  # translated into repeatmasker_custom labels so the 32-class model head is preserved.
+  label_subset:
+    enabled: true
+    mode: "explicit"
+    labels:
+      - "CRYPTON/CRYPTON"
+      - "DIRS/DIRS"
+      - "HELITRON/HELITRON"
+      - "LINE/CR1"
+      - "LINE/I"
+      - "LINE/L1"
+      - "LINE/R1"
+      - "LINE/RTE"
+      - "LTR/BELPAO"
+      - "LTR/COPIA"
+      - "LTR/ERV"
+      - "LTR/GYPSY"
+      - "PLE/PLE"
+      - "SINE/OTHER"
+      - "SINE/TRNA"
+      - "TIR/ACADEM-1"
+      - "TIR/CACTA"
+      - "TIR/HAT"
+      - "TIR/KOLOBOK"
+      - "TIR/MERLIN"
+      - "TIR/MULE"
+      - "TIR/P"
+      - "TIR/PIFHARBINGER"
+      - "TIR/PIGGYBAC"
+      - "TIR/TC1MARINER"

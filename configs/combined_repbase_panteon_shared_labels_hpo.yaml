@@ -1,0 +1,69 @@
+model:
+  base_model: InstaDeepAI/NTv3_650M_pre
+  max_length: 4096
+  use_lora: false
+  lora_r: 32
+  lora_alpha: 64
+  lora_dropout: 0.1
+  lora_target_modules: [linear, mha_output]
+  hidden_dim: 512
+  num_orders: 8
+  num_superfamilies: 30
+  pooling: mean
+  head_dropout: 0.22320323256729352
+training:
+  batch_size: 8
+  max_epochs: 10
+  early_stopping_patience: 8
+  lambda_superfamily: 1.0
+  lambda_order: 0
+  lora_lr: 2.53032090218936e-05
+  head_lr: 0.00028944361832243895
+  weight_decay: 0.059703505248527425
+  warmup_fraction: 0.05
+  val_fraction: 0.1
+  seed: 7
+  label_smoothing: 0.04654581174590394
+  gradient_accumulation_steps: 4
+  use_compile: true
+  class_weight_scheme: sqrt_inv
+evaluation:
+  thresholds: [0.0]
+  output_dir: glare_combined_repbase_panteon_shared_labels_results
+  use_hierarchical_confidence: false
+data:
+  mode: combined_repbase_panteon
+  repbase_dir: glare/data/repbase31_filtered
+  holdout_dir: glare/data/repbase31_holdout
+  toml_mapping: glare/data/repbase-to-repeatmasker.toml
+  fasta_path: glare/data/PanTEon_Database_v1.6.1_benchmark_edition.fasta
+  panteon_fasta_path: glare/data/PanTEon_Database_v1.6.1_benchmark_edition.fasta
+  repbase_label_space: panteon30
+  test_fraction: 0.1
+  sliding_window_overlap: 0.5
+  taxonomy_holdout:
+    enabled: true
+    metadata_csv: glare/data/PanTEon_Database_metadata_v1.6.1.csv
+    filter_column: Order
+    filter_value: Poales
+    species_column: Species
+    filter_match: exact
+    fasta_species_mode: after_at
+    species_match: normalized_exact
+    fail_on_no_matches: true
+  label_subset:
+    enabled: true
+    mode: train_intersection
+    repbase_train_dir: glare/data/repbase31_filtered
+    repbase_toml_path: glare/data/repbase-to-repeatmasker.toml
+    panteon_fasta_path: glare/data/PanTEon_Database_v1.6.1_benchmark_edition.fasta
+    panteon_taxonomy_holdout:
+      enabled: true
+      metadata_csv: glare/data/PanTEon_Database_metadata_v1.6.1.csv
+      filter_column: Order
+      filter_value: Poales
+      species_column: Species
+      filter_match: exact
+      fasta_species_mode: after_at
+      species_match: normalized_exact
+      fail_on_no_matches: true

@@ -1,0 +1,44 @@
+model:
+  base_model: "InstaDeepAI/NTv3_650M_pre"
+  max_length: 1024
+  use_lora: true
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.1
+  lora_target_modules: ["linear", "mha_output"]
+  hidden_dim: 512
+  # Actual counts derived from glare/glare/data/repbase-to-repeatmasker.toml
+  # PLE is now the 7th order; all PLE sequences map to PLE/Penelope (45th SF)
+  num_orders: 7
+  num_superfamilies: 45
+
+training:
+  batch_size: 16
+  max_epochs: 20
+  early_stopping_patience: 8
+  # SF is the primary objective; order head is auxiliary (regularises the backbone).
+  # lambda_order=0.3 gives the backbone a stronger hierarchical gradient signal
+  # early in training, helping it learn discriminative TE-order representations faster.
+  lambda_superfamily: 1.0
+  lambda_order: 0.3
+  label_smoothing: 0.0
+  lora_lr: 5.0e-5
+  head_lr: 3.0e-4
+  weight_decay: 0.01
+  warmup_fraction: 0.05
+  val_fraction: 0.1
+  seed: 42
+
+evaluation:
+  thresholds: [0.0]
+  output_dir: "glare_results"
+  use_hierarchical_confidence: false
+
+data:
+  repbase_dir: "glare/data/repbase31_filtered"
+  holdout_dir: "glare/data/repbase31_holdout"
+  toml_mapping: "glare/data/repbase-to-repeatmasker.toml"
+  # Keep the historical 45-superfamily Repbase workflow by default.
+  # Set to "panteon30" (or use glare/configs/repbase30.yaml) to train Repbase
+  # REF data in the same 30-superfamily label space as PanTEon/GLARE models.
+  repbase_label_space: "legacy45"

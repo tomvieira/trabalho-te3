@@ -1,0 +1,47 @@
+[workspace]
+name = "glare"
+version = "0.1.0"
+description = "Reproducible Pixi environment for GLARE prediction"
+channels = ["conda-forge", "pytorch", "nvidia"]
+platforms = ["linux-64"]
+
+[system-requirements]
+cuda = "12.4"
+
+[dependencies]
+python = "3.11.*"
+pip = ">=24,<26"
+setuptools = ">=68"
+wheel = ">=0.42"
+
+# CUDA-enabled PyTorch stack for GLARE prediction on Linux GPU nodes.
+pytorch = { version = ">=2.4,<2.6", channel = "pytorch", build = "py3.11_cuda12.4_*" }
+pytorch-cuda = "12.4.*"
+
+# GLARE runtime dependencies.  The tokenizers/transformers range mirrors the
+# flexible package metadata while keeping the Pixi solve in the known-compatible
+# tokenizers 0.19 series.
+transformers = ">=4.40,<4.45"
+tokenizers = ">=0.19,<0.20"
+peft = ">=0.10,<0.14"
+datasets = ">=2.18,<3"
+accelerate = ">=0.29,<1"
+huggingface_hub = ">=0.23,<1"
+scikit-learn = ">=1.4,<2"
+pandas = ">=2,<3"
+numpy = ">=1.26,<3"
+click = ">=8.1,<9"
+pyyaml = ">=6,<7"
+tqdm = ">=4.66,<5"
+biopython = ">=1.83,<2"
+matplotlib = ">=3.8,<4"
+scipy = ">=1.11,<2"
+
+[pypi-dependencies]
+glare = { path = ".", editable = true }
+
+[tasks]
+develop = "python -m pip install --no-deps -e ."
+help = "glare --help"
+cli-help = "glare --help"
+predict-help = "glare predict --help"

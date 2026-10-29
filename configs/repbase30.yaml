@@ -1,0 +1,43 @@
+model:
+  base_model: "InstaDeepAI/NTv3_650M_pre"
+  max_length: 512
+  use_lora: false
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.1
+  lora_target_modules: ["linear", "mha_output"]
+  hidden_dim: 512
+  num_orders: 8
+  num_superfamilies: 30
+  pooling: "mean"
+
+training:
+  batch_size: 16
+  max_epochs: 10
+  early_stopping_patience: 8
+  lambda_superfamily: 1.0
+  lambda_order: 0
+  label_smoothing: 0.05
+  lora_lr: 5.0e-5
+  head_lr: 3.0e-4
+  weight_decay: 0.01
+  warmup_fraction: 0.05
+  val_fraction: 0.1
+  seed: 7
+  gradient_accumulation_steps: 4
+  use_compile: false
+
+evaluation:
+  thresholds: [0.0]
+  output_dir: "glare_repbase30_results"
+  use_hierarchical_confidence: false
+
+data:
+  # Repbase31 filtered records are split into train/validation only.
+  repbase_dir: "glare/data/repbase31_filtered"
+  # Repbase31 holdout records are mapped with the same logic and used only as
+  # the external test set after training.
+  holdout_dir: "glare/data/repbase31_holdout"
+  toml_mapping: "glare/data/repbase-to-repeatmasker.toml"
+  repbase_label_space: "panteon30"
+  sliding_window_overlap: 0.5

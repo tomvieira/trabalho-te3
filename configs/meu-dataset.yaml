@@ -1,0 +1,20 @@
+model:
+  base_model: "InstaDeepAI/NTv3_650M_pre" # Ou a versão 8M se preferir para a RTX 3050
+  use_lora: true # Recomendado para não estourar a memória (LoRA fine-tuning)
+  lora_r: 8
+  lora_alpha: 16
+  lora_dropout: 0.1
+  lora_target_modules: ["q_proj", "v_proj"] # Módulos de atenção do transformer
+  hidden_dim: 512
+  num_orders: 1 # Ajuste se você tiver uma hierarquia de ordens, senão deixe 1
+  num_superfamilies: 12 # Substitua pelo número exato de classes do seu Dataset3
+
+training:
+  batch_size: 2 # Baixo para a RTX 3050
+  epochs: 10
+  learning_rate: 3e-4
+  rc_augment: true # Ativa o augmentation reverso-complementar automático
+
+data:
+  train_dir: "../Data/Dataset3/Train"
+  test_dir: "../Data/Dataset3/Test"
