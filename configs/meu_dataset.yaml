@@ -1,5 +1,6 @@
 model:
   base_model: "InstaDeepAI/NTv3_650M_pre"
+  max_length: 4096
   use_lora: true
   lora_r: 8
   lora_alpha: 16
@@ -8,23 +9,35 @@ model:
   hidden_dim: 512
   num_orders: 1
   num_superfamilies: 12
-  max_length: 4096
+  pooling: "mean"
 
 training:
   batch_size: 2
-  epochs: 10
-  learning_rate: 3e-4
-  rc_augment: true
-  seed: 42
+  max_epochs: 10
+  early_stopping_patience: 5
+  lambda_superfamily: 1.0
+  lambda_order: 0.0
+  label_smoothing: 0.0
+  lora_lr: 1e-4
+  head_lr: 3.0e-4
+  weight_decay: 0.01
+  warmup_fraction: 0.05
   val_fraction: 0.2
-  label_smoothing: 0.0  # <-- ADICIONE ESTA LINHA
-  lambda_order: 0.0     # <-- ADICIONE ESTA LINHA
-  lambda_superfamily: 1.0  # <-- ADICIONE ESTA LINHA
+  seed: 42
+  gradient_accumulation_steps: 4
+  use_compile: false
+  rc_augment: true
+
+evaluation:
+  thresholds: [0.0]
+  output_dir: "./resultados_meu_dataset"
+  use_hierarchical_confidence: false
 
 data:
   train_dir: "./data/Dataset3_nova/Train"
   test_dir: "./data/Dataset3_nova/Test"
-  label_space: "custom"
   repbase_dir: "./data/Dataset3_nova"
-  panteon_dir: "./data/Dataset3_nova"
-  toml_mapping: "data/meu_mapeamento.toml" # <-- LINHA ADICIONADA AQUI
+  holdout_dir: "./data/Dataset3_nova/Test"
+  toml_mapping: "data/meu_mapeamento.toml"
+  repbase_label_space: "custom"
+  sliding_window_overlap: 0.5
