@@ -1373,6 +1373,13 @@ def train(config: dict, output_dir: Path, local_rank: int = 0):
             logger.info("%s", format_label_distribution(
                 records, "Legacy Repbase filtered distribution"))
 
+        # === BYPASS DO DICIONÁRIO DE CLASSES ===
+        classes_unicas = sorted(list(set(r["superfamily"] for r in records)))
+        superfamily2idx = {nome: idx for idx,
+                           nome in enumerate(classes_unicas)}
+        order2idx = {"Custom": 0}  # <-- ADICIONE ESTA LINHA AQUI
+        # =======================================
+
         sf_labels_all = [superfamily2idx[r["superfamily"]] for r in records]
         train_recs, val_recs = train_test_split(
             records,

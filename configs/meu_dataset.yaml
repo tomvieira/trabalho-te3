@@ -7,7 +7,7 @@ model:
   lora_target_modules: "all-linear"
   hidden_dim: 512
   num_orders: 1
-  num_superfamilies: 10
+  num_superfamilies: 12
   max_length: 4096
 
 training:
@@ -17,6 +17,9 @@ training:
   rc_augment: true
   seed: 42
   val_fraction: 0.2
+  label_smoothing: 0.0  # <-- ADICIONE ESTA LINHA
+  lambda_order: 0.0     # <-- ADICIONE ESTA LINHA
+  lambda_superfamily: 1.0  # <-- ADICIONE ESTA LINHA
 
 data:
   train_dir: "./data/Dataset3_nova/Train"
